@@ -1,0 +1,3 @@
+[build.environment]
+  # Supabase anon keys are public and are intentionally included in Next.js bundles.
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_ANON_KEY"
