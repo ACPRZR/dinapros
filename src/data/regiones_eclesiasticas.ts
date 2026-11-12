@@ -1,0 +1,30 @@
+// Mapa oficial: Departamento → Regiones Eclesiásticas disponibles
+export const REGIONES_ECLESIASTICAS: Record<string, string[]> = {
+  "Amazonas": ["Amazonas"],
+  "Áncash": ["Áncash Norte", "Callejón de Huaylas", "El Pacífico", "Gran Chavín", "Marañón", "Trasandina"],
+  "Apurímac": ["Apurímac"],
+  "Arequipa": ["Arequipa"],
+  "Ayacucho": ["Cangallo", "Huamanga", "Huanta", "Lucanas", "Vraem"],
+  "Cajamarca": ["Bambamarca", "Cajabamba", "Cajamarca", "Celendín", "Cutervo", "Jaén", "San Marcos"],
+  "Callao": ["Callao"],
+  "Cusco": ["Cusco"],
+  "Huancavelica": ["Acobamba", "Angaraes y Huaytará", "Churcampa", "Huancavelica Castrovirreyna", "Tayacaja"],
+  "Huánuco": ["Ambo", "Dos de Mayo", "Huamalíes", "Huánuco", "Lauricocha", "Tingo María", "Tocache", "Yarowilca"],
+  "Ica": ["Ica"],
+  "Junín": ["Centro", "Junín", "Selva Central"],
+  "La Libertad": ["La Libertad Este", "La Libertad Norte", "La Libertad Trujillo", "La Libertad Valle Jequetepeque", "Pataz"],
+  "Lambayeque": ["Lambayeque"],
+  "Lima": ["Lima Centro", "Lima Este Central", "Lima Nor Este", "Lima Norte", "Lima Provincias", "Lima Sur"],
+  "Loreto": ["Iquitos", "Yurimaguas"],
+  "Madre de Dios": ["Madre de Dios"],
+  "Moquegua": ["Moquegua"],
+  "Pasco": ["Daniel Alcides Carrión", "Oxapampa", "Pasco"],
+  "Piura": ["Alto Piura", "Huarmaca", "Piura"],
+  "Puno": ["Aymara Frontera Sur", "El Collao - Ilave", "Juliaca", "Lacustre Puno", "Lago Azul Puno", "Melgar", "Norte Puno", "San Antón - Carabaya"],
+  "San Martín": ["Alto Mayo", "San Martín"],
+  "Tacna": ["Tacna"],
+  "Tumbes": ["Tumbes"],
+  "Ucayali": ["Ucayali"],
+};
+
+export const DEPARTAMENTOS_LIST = Object.keys(REGIONES_ECLESIASTICAS);
