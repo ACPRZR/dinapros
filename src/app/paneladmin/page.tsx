@@ -21,7 +21,6 @@ export default function PanelAdminPage() {
   return (
     <ScrollSyncShowcase
       items={items}
-      headerText="Centro de acceso administrativo para supervisión operativa y gestión de brigadas."
     />
   );
 }

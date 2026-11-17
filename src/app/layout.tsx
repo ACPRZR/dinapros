@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DINAPROS esta contigo",
+  title: "LADP te ayuda",
   description:
     "Plataforma de gestión de incidencias, ayuda y agenda de brigadas para el Fenómeno El Niño",
 };

@@ -3,23 +3,30 @@ import Link from "next/link";
 export default function Home() {
   return (
     <main className="h-screen flex flex-col overflow-hidden">
-      {/* Top half — Dinapros */}
-      <section className="flex-1 flex items-center px-[5vw] bg-base">
-        <h1
-          className="font-bold leading-[0.85] text-fg tracking-tight"
-          style={{ fontSize: "clamp(2.5rem, 13vw, 13rem)" }}
-        >
-          Dinapros
-        </h1>
+      {/* Top half — LADP */}
+      <section className="flex-1 flex flex-col justify-between px-[5vw] py-6 bg-base">
+        <header className="w-full">
+          <span className="text-sm sm:text-base font-bold tracking-tight text-[#FFFFFF]">
+            LADP te ayuda
+          </span>
+        </header>
+        <div className="flex-1 flex items-center">
+          <h1
+            className="font-bold leading-[0.85] text-fg tracking-tight"
+            style={{ fontSize: "clamp(2.5rem, 13vw, 13rem)" }}
+          >
+            LADP
+          </h1>
+        </div>
       </section>
 
-      {/* Bottom half — esta contigo + actions */}
+      {/* Bottom half — te ayuda + actions */}
       <section className="flex-1 flex flex-col justify-between py-6 px-[5vw] bg-card">
         <h2
           className="font-bold leading-[0.85] text-fg tracking-tight"
           style={{ fontSize: "clamp(2.5rem, 13vw, 13rem)" }}
         >
-          esta contigo
+          te ayuda
         </h2>
 
         {/* Three actions */}

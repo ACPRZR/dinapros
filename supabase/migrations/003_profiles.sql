@@ -14,13 +14,22 @@ create table if not exists profiles (
 
 -- Trigger: crear perfil automáticamente al registrarse
 create or replace function fn_create_profile()
-returns trigger as $$
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
 begin
-  insert into profiles (id, email) values (new.id, new.email)
-  on conflict do nothing;
+  insert into public.profiles (id, email, full_name)
+  values (
+    new.id,
+    new.email,
+    coalesce(new.raw_user_meta_data->>'full_name', null)
+  )
+  on conflict (id) do nothing;
   return new;
 end;
-$$ language plpgsql;
+$$;
 
 drop trigger if exists trg_create_profile on auth.users;
 create trigger trg_create_profile

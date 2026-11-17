@@ -13,13 +13,18 @@ create table if not exists user_roles (
 
 -- Trigger: asignar rol 'usuario' automáticamente al registrarse
 create or replace function fn_assign_user_role()
-returns trigger as $$
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
 begin
-  insert into user_roles (user_id, role) values (new.id, 'usuario')
-  on conflict do nothing;
+  insert into public.user_roles (user_id, role)
+  values (new.id, 'usuario')
+  on conflict (user_id) do nothing;
   return new;
 end;
-$$ language plpgsql;
+$$;
 
 drop trigger if exists trg_assign_user_role on auth.users;
 create trigger trg_assign_user_role

@@ -30,7 +30,13 @@ export default function RegistrarPage() {
 
     setLoading(true);
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/ingresar`,
+      },
+    });
 
     if (error) {
       setError(error.message);
@@ -68,7 +74,7 @@ export default function RegistrarPage() {
           href="/"
           className="font-bold text-fg text-sm hover:text-accent transition-colors"
         >
-          ← DINAPROS esta contigo
+          ← LADP te ayuda
         </Link>
       </header>
 

@@ -162,7 +162,7 @@ export default function PanelDeControlPage() {
       {/* Header */}
       <header className="bg-base border-b border-edge px-6 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
-          <span className="font-bold text-fg text-sm">DINAPROS</span>
+          <span className="font-bold text-fg text-sm">LADP te ayuda</span>
           <div className="flex items-center gap-2">
             <div className="flex -space-x-2">
               {users

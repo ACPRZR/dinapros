@@ -18,9 +18,10 @@ export default function DashboardHeader({ role = "usuario" }: { role?: UserRole 
     <header className="sticky top-0 z-40 bg-base border-b border-edge px-5 py-3 flex items-center justify-between">
       <button
         onClick={() => router.push(role === "admin" ? "/paneladmin" : "/panel")}
-        className="font-bold text-fg text-sm sm:text-base"
+        className="font-bold text-[#FFFFFF] text-sm sm:text-base"
+        style={{ color: "#FFFFFF" }}
       >
-        DINAPROS esta contigo
+        LADP te ayuda
       </button>
 
       <button

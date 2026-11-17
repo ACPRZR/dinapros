@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Package, Droplets, Tent, HeartPulse, Wrench,
-  ShowerHead, MoreHorizontal,
+  ShowerHead, HeartHandshake, HardHat, MoreHorizontal,
+  Building2,
   Pencil, Copy, Check, ArrowLeft, ArrowRight,
   type LucideIcon,
 } from "lucide-react";
@@ -22,7 +23,9 @@ const CATEGORIA_ICONS: Record<string, LucideIcon> = {
   "Salud y medicamentos": HeartPulse,
   "Herramientas y kits de limpieza": Wrench,
   "Higiene personal": ShowerHead,
-  "Otro": MoreHorizontal,
+  "Contención emocional": HeartHandshake,
+  "Limpieza / Remoción de escombros": HardHat,
+  "Otros": MoreHorizontal,
 };
 
 type FormData = {
@@ -30,6 +33,8 @@ type FormData = {
   provincia: string;
   distrito: string;
   categoria_ayuda: string;
+  categoria_ayuda_otro: string;
+  tipo_organizacion: "" | "LADP" | "Otros";
   organizacion: string;
   num_personas: number;
   fecha_entrega: string;
@@ -41,6 +46,8 @@ const EMPTY_FORM: FormData = {
   provincia: "",
   distrito: "",
   categoria_ayuda: "",
+  categoria_ayuda_otro: "",
+  tipo_organizacion: "",
   organizacion: "",
   num_personas: 0,
   fecha_entrega: "",
@@ -59,8 +66,11 @@ export default function AyudasWizard() {
   function nextDisabled() {
     switch (step) {
       case 1: return !data.distrito;
-      case 2: return !data.categoria_ayuda;
-      case 3: return data.organizacion.trim().length < 2 || data.num_personas <= 0;
+      case 2: return !data.categoria_ayuda || (data.categoria_ayuda === "Otros" && !data.categoria_ayuda_otro.trim());
+      case 3:
+        if (!data.tipo_organizacion) return true;
+        if (data.tipo_organizacion === "Otros" && data.organizacion.trim().length < 2) return true;
+        return !Number.isInteger(data.num_personas) || data.num_personas < 1;
       case 4: return !data.fecha_entrega;
       default: return false;
     }
@@ -85,14 +95,22 @@ export default function AyudasWizard() {
     setSubmitting(true);
     setError(null);
     const supabase = createClient();
+    const categoriaFinal =
+      data.categoria_ayuda === "Otros"
+        ? `Otros: ${data.categoria_ayuda_otro.trim()}`
+        : data.categoria_ayuda;
+
+    const organizacionFinal =
+      data.tipo_organizacion === "LADP" ? "LADP" : data.organizacion.trim();
+
     const { data: result, error } = await supabase
       .from("ayudas")
       .insert({
         departamento: data.departamento || null,
         provincia: data.provincia || null,
         distrito: data.distrito || null,
-        categoria_ayuda: data.categoria_ayuda,
-        organizacion: data.organizacion,
+        categoria_ayuda: categoriaFinal,
+        organizacion: organizacionFinal,
         fecha_entrega: data.fecha_entrega,
         num_personas: data.num_personas,
         observaciones: data.observaciones || null,
@@ -101,7 +119,8 @@ export default function AyudasWizard() {
       .single();
 
     if (error) {
-      setError("Error al guardar. Verifica tu conexión e intenta de nuevo.");
+      console.error("Error al guardar ayuda:", error);
+      setError(`Error al guardar: ${error.message || "Verifica tu conexión e intenta de nuevo."}`);
       setSubmitting(false);
       return;
     }
@@ -184,10 +203,35 @@ export default function AyudasWizard() {
                 {CATEGORIAS_AYUDA.map((cat) => {
                   const Icon = CATEGORIA_ICONS[cat];
                   return (
-                    <OptionCard key={cat} icon={Icon ? <Icon className="w-8 h-8" /> : null} label={cat} selected={data.categoria_ayuda === cat} onClick={() => setData((d) => ({ ...d, categoria_ayuda: cat }))} />
+                    <OptionCard
+                      key={cat}
+                      icon={Icon ? <Icon className="w-8 h-8" /> : null}
+                      label={cat}
+                      selected={data.categoria_ayuda === cat}
+                      onClick={() =>
+                        setData((d) => ({
+                          ...d,
+                          categoria_ayuda: cat,
+                          categoria_ayuda_otro: cat === "Otros" ? d.categoria_ayuda_otro : "",
+                        }))
+                      }
+                    />
                   );
                 })}
               </div>
+              {data.categoria_ayuda === "Otros" && (
+                <div className="flex flex-col gap-1 mt-2">
+                  <label className="text-sm font-medium text-fg">Especifique el detalle *</label>
+                  <input
+                    type="text"
+                    required
+                    value={data.categoria_ayuda_otro}
+                    onChange={(e) => setData((d) => ({ ...d, categoria_ayuda_otro: e.target.value }))}
+                    placeholder="Describa cuál es la otra opción…"
+                    className="bg-base border border-edge rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent"
+                  />
+                </div>
+              )}
             </div>
           )}
 
@@ -195,21 +239,88 @@ export default function AyudasWizard() {
           {step === 3 && (
             <div className="flex flex-col gap-5">
               <h3 className="text-lg font-bold text-fg">Organización y alcance</h3>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-fg">Organización que brinda la ayuda</label>
-                <input type="text" required minLength={2} value={data.organizacion} onChange={(e) => setData((d) => ({ ...d, organizacion: e.target.value }))} placeholder="Ej: Municipio, Cruz Roja, ONG…" className="bg-base border border-edge rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent" />
+
+              <div className="grid grid-cols-2 gap-3">
+                {(["LADP", "Otros"] as const).map((opcion) => {
+                  const selected = data.tipo_organizacion === opcion;
+                  const Icon = opcion === "LADP" ? Building2 : MoreHorizontal;
+                  return (
+                    <button
+                      key={opcion}
+                      type="button"
+                      onClick={() =>
+                        setData((d) => ({
+                          ...d,
+                          tipo_organizacion: opcion,
+                          organizacion: opcion === "LADP" ? "" : d.organizacion,
+                        }))
+                      }
+                      className={`group flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all min-h-[120px] ${
+                        selected
+                          ? "border-[#0066CC] bg-[#0066CC]/15 text-[#FFFFFF]"
+                          : "border-edge bg-card text-[#FFFFFF] hover:bg-[#F5F5F7] hover:text-[#1D1D1F] hover:border-[#F5F5F7]"
+                      }`}
+                    >
+                      <Icon
+                        className={`w-8 h-8 transition-colors ${
+                          selected
+                            ? "text-[#0066CC]"
+                            : "text-[#FFFFFF] group-hover:text-[#1D1D1F]"
+                        }`}
+                      />
+                      <span className="text-sm font-semibold text-center leading-tight">
+                        {opcion}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-fg">Número de personas alcanzadas</label>
-                <input type="number" min={1} value={data.num_personas || ""} onChange={(e) => setData((d) => ({ ...d, num_personas: parseInt(e.target.value) || 0 }))} className="bg-base border border-edge rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent w-full max-w-xs" />
-              </div>
+
+              {data.tipo_organizacion === "Otros" && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-fg">
+                    Nombre de la organización que brinda la ayuda *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    minLength={2}
+                    value={data.organizacion}
+                    onChange={(e) => setData((d) => ({ ...d, organizacion: e.target.value }))}
+                    placeholder="Ej: Municipio, Cruz Roja, ONG…"
+                    className="bg-base border border-edge rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent"
+                  />
+                </div>
+              )}
+
+              {data.tipo_organizacion !== "" && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-fg">
+                    Número de personas alcanzadas *
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={data.num_personas > 0 ? String(data.num_personas) : ""}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "");
+                      setData((d) => ({
+                        ...d,
+                        num_personas: digits ? parseInt(digits, 10) : 0,
+                      }));
+                    }}
+                    placeholder="Ej: 50"
+                    className="bg-base border border-edge rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent w-full max-w-xs"
+                  />
+                </div>
+              )}
             </div>
           )}
 
-          {/* STEP 4 — Fecha y Nota */}
+          {/* STEP 4 — Fecha y Alertas / Avisos */}
           {step === 4 && (
             <div className="flex flex-col gap-5">
-              <h3 className="text-lg font-bold text-fg">Fecha de recepción / entrega</h3>
+              <h3 className="text-lg font-bold text-fg">Fecha de recepción / entrega y alertas / avisos</h3>
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-fg">¿Cuándo se entregó o recepcionó?</label>
                 <div className="flex gap-2 mb-2">
@@ -219,8 +330,8 @@ export default function AyudasWizard() {
                 <input type="date" max={today} value={data.fecha_entrega} onChange={(e) => setData((d) => ({ ...d, fecha_entrega: e.target.value }))} className="bg-base border border-edge rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent w-full max-w-xs" />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-fg">Nota (opcional)</label>
-                <textarea maxLength={500} rows={4} value={data.observaciones} onChange={(e) => setData((d) => ({ ...d, observaciones: e.target.value }))} placeholder="Detalle del lote o entrega…" className="bg-base border border-edge rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent resize-none" />
+                <label className="text-sm font-medium text-fg">Alertas / Avisos (opcional)</label>
+                <textarea maxLength={500} rows={4} value={data.observaciones} onChange={(e) => setData((d) => ({ ...d, observaciones: e.target.value }))} placeholder="Detalle del lote, alerta o aviso…" className="bg-base border border-edge rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent resize-none" />
                 <span className="text-xs text-dim text-right">{data.observaciones.length}/500</span>
               </div>
             </div>
@@ -233,9 +344,22 @@ export default function AyudasWizard() {
               {error && <p className="text-sm text-red-500 bg-red-500/10 rounded-lg px-3 py-2">{error}</p>}
               <div className="flex flex-col gap-3">
                 <SummaryBlock title="Destino" onEdit={() => setStep(1)} value={data.distrito} subtitle={`${data.departamento} · ${data.provincia}`} />
-                <SummaryBlock title="Categoría de ayuda" onEdit={() => setStep(2)} value={data.categoria_ayuda} />
-                <SummaryBlock title="Organización" onEdit={() => setStep(3)} value={data.organizacion} subtitle={`${data.num_personas} personas alcanzadas`} />
-                <SummaryBlock title="Fecha de entrega" onEdit={() => setStep(4)} value={data.fecha_entrega} subtitle={data.observaciones ? `Nota: ${data.observaciones}` : "Sin nota"} />
+                <SummaryBlock
+                  title="Categoría de ayuda"
+                  onEdit={() => setStep(2)}
+                  value={
+                    data.categoria_ayuda === "Otros"
+                      ? `Otros: ${data.categoria_ayuda_otro.trim()}`
+                      : data.categoria_ayuda
+                  }
+                />
+                <SummaryBlock
+                  title="Organización"
+                  onEdit={() => setStep(3)}
+                  value={data.tipo_organizacion === "LADP" ? "LADP" : data.organizacion.trim()}
+                  subtitle={`${data.num_personas} personas alcanzadas`}
+                />
+                <SummaryBlock title="Fecha de entrega" onEdit={() => setStep(4)} value={data.fecha_entrega} subtitle={data.observaciones ? `Alertas / Avisos: ${data.observaciones}` : "Sin alertas / avisos"} />
               </div>
               <button onClick={handleSubmit} disabled={submitting} className="mt-2 bg-accent text-fg font-bold rounded-lg py-3 hover:bg-hover hover:text-base transition-colors disabled:opacity-50">
                 {submitting ? "Guardando…" : "Confirmar y guardar"}

@@ -28,12 +28,16 @@ export default function NuevaBrigadaPage() {
 
   const [departamento, setDepartamento] = useState("");
   const [regionEclesiastica, setRegionEclesiastica] = useState("");
-  const [nombreBrigada, setNombreBrigada] = useState("");
   const [nombreResponsable, setNombreResponsable] = useState("");
   const [documentoResponsable, setDocumentoResponsable] = useState("");
   const [telefonoResponsable, setTelefonoResponsable] = useState("");
   const [contactoSecundario, setContactoSecundario] = useState("");
   const [miembros, setMiembros] = useState<Miembro[]>([{ ...EMPTY_MIEMBRO }]);
+  const [triedSubmit, setTriedSubmit] = useState(false);
+
+  function sanitizeDigits(value: string, maxLen: number) {
+    return value.replace(/\D/g, "").slice(0, maxLen);
+  }
 
   const availableRegions = useMemo(
     () => (departamento ? REGIONES_ECLESIASTICAS[departamento] || [] : []),
@@ -59,20 +63,49 @@ export default function NuevaBrigadaPage() {
 
   function updateMiembro(index: number, field: keyof Miembro, value: string) {
     const updated = [...miembros];
-    updated[index] = { ...updated[index], [field]: value };
+    let sanitized = value;
+    if (field === "documento") sanitized = sanitizeDigits(value, 8);
+    if (field === "telefono") sanitized = sanitizeDigits(value, 9);
+    updated[index] = { ...updated[index], [field]: sanitized };
     setMiembros(updated);
   }
 
-  const canSubmit =
-    departamento &&
-    regionEclesiastica &&
-    nombreBrigada.trim() &&
-    nombreResponsable.trim() &&
-    telefonoResponsable.trim() &&
-    miembros.every((m) => m.nombre_completo.trim() && m.telefono.trim());
+  function validateForm(): string | null {
+    if (!departamento || !regionEclesiastica) {
+      return "Selecciona el departamento y la región eclesiástica.";
+    }
+    if (!nombreResponsable.trim()) {
+      return "Ingresa el nombre completo del responsable.";
+    }
+    if (!/^\d{8}$/.test(documentoResponsable)) {
+      return "El DNI del responsable debe tener exactamente 8 dígitos numéricos.";
+    }
+    if (!/^\d{9}$/.test(telefonoResponsable)) {
+      return "El teléfono del responsable debe tener exactamente 9 dígitos numéricos.";
+    }
+    for (let i = 0; i < miembros.length; i++) {
+      const m = miembros[i];
+      if (!m.nombre_completo.trim()) {
+        return `Ingresa el nombre completo del miembro ${i + 1}.`;
+      }
+      if (!/^\d{8}$/.test(m.documento)) {
+        return `El DNI del miembro ${i + 1} debe tener exactamente 8 dígitos numéricos.`;
+      }
+      if (!/^\d{9}$/.test(m.telefono)) {
+        return `El teléfono del miembro ${i + 1} debe tener exactamente 9 dígitos numéricos.`;
+      }
+    }
+    return null;
+  }
 
   async function handleSubmit() {
-    if (!canSubmit) return;
+    setTriedSubmit(true);
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
     const supabase = createClient();
@@ -82,11 +115,11 @@ export default function NuevaBrigadaPage() {
       .insert({
         departamento,
         region_eclesiastica: regionEclesiastica,
-        nombre_brigada: nombreBrigada,
-        nombre_responsable: nombreResponsable,
-        documento_responsable: documentoResponsable || null,
+        nombre_brigada: `Brigada ${departamento}`,
+        nombre_responsable: nombreResponsable.trim(),
+        documento_responsable: documentoResponsable,
         telefono_responsable: telefonoResponsable,
-        contacto_secundario: contactoSecundario || null,
+        contacto_secundario: contactoSecundario.trim() || null,
       })
       .select()
       .single();
@@ -177,10 +210,6 @@ export default function NuevaBrigadaPage() {
                   ))}
                 </select>
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-fg">Nombre o identificador de la brigada *</label>
-                <input type="text" value={nombreBrigada} onChange={(e) => setNombreBrigada(e.target.value)} placeholder="Ej: Brigada 01" className="bg-base border border-edge rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent" />
-              </div>
             </div>
           </section>
 
@@ -193,12 +222,34 @@ export default function NuevaBrigadaPage() {
                 <input type="text" value={nombreResponsable} onChange={(e) => setNombreResponsable(e.target.value)} className="bg-base border border-edge rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent" />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-fg">Documento (opcional)</label>
-                <input type="text" value={documentoResponsable} onChange={(e) => setDocumentoResponsable(e.target.value)} className="bg-base border border-edge rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent" />
+                <label className="text-sm font-medium text-fg">DNI * (8 dígitos)</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={8}
+                  value={documentoResponsable}
+                  onChange={(e) => setDocumentoResponsable(sanitizeDigits(e.target.value, 8))}
+                  placeholder="12345678"
+                  className="bg-base border border-edge rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent"
+                />
+                {(triedSubmit || documentoResponsable.length > 0) && documentoResponsable.length < 8 && (
+                  <span className="text-xs text-red-500">Debe tener exactamente 8 dígitos.</span>
+                )}
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-fg">Teléfono de contacto *</label>
-                <input type="tel" value={telefonoResponsable} onChange={(e) => setTelefonoResponsable(e.target.value)} placeholder="999888777" className="bg-base border border-edge rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent" />
+                <label className="text-sm font-medium text-fg">Teléfono de contacto * (9 dígitos)</label>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={9}
+                  value={telefonoResponsable}
+                  onChange={(e) => setTelefonoResponsable(sanitizeDigits(e.target.value, 9))}
+                  placeholder="999888777"
+                  className="bg-base border border-edge rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent"
+                />
+                {(triedSubmit || telefonoResponsable.length > 0) && telefonoResponsable.length < 9 && (
+                  <span className="text-xs text-red-500">Debe tener exactamente 9 dígitos.</span>
+                )}
               </div>
               <div className="flex flex-col gap-1 sm:col-span-2">
                 <label className="text-sm font-medium text-fg">Contacto secundario (opcional)</label>
@@ -232,12 +283,34 @@ export default function NuevaBrigadaPage() {
                       <input type="text" value={m.nombre_completo} onChange={(e) => updateMiembro(i, "nombre_completo", e.target.value)} className="bg-base border border-edge rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent" />
                     </div>
                     <div className="flex flex-col gap-1">
-                      <label className="text-xs text-dim">Documento (opcional)</label>
-                      <input type="text" value={m.documento} onChange={(e) => updateMiembro(i, "documento", e.target.value)} className="bg-base border border-edge rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent" />
+                      <label className="text-xs text-dim">DNI * (8 dígitos)</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={8}
+                        value={m.documento}
+                        onChange={(e) => updateMiembro(i, "documento", e.target.value)}
+                        placeholder="12345678"
+                        className="bg-base border border-edge rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent"
+                      />
+                      {(triedSubmit || m.documento.length > 0) && m.documento.length < 8 && (
+                        <span className="text-xs text-red-500">Debe tener exactamente 8 dígitos.</span>
+                      )}
                     </div>
                     <div className="flex flex-col gap-1">
-                      <label className="text-xs text-dim">Teléfono *</label>
-                      <input type="tel" value={m.telefono} onChange={(e) => updateMiembro(i, "telefono", e.target.value)} className="bg-base border border-edge rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent" />
+                      <label className="text-xs text-dim">Teléfono * (9 dígitos)</label>
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={9}
+                        value={m.telefono}
+                        onChange={(e) => updateMiembro(i, "telefono", e.target.value)}
+                        placeholder="999888777"
+                        className="bg-base border border-edge rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent"
+                      />
+                      {(triedSubmit || m.telefono.length > 0) && m.telefono.length < 9 && (
+                        <span className="text-xs text-red-500">Debe tener exactamente 9 dígitos.</span>
+                      )}
                     </div>
                     <div className="flex flex-col gap-1 sm:col-span-2">
                       <label className="text-xs text-dim">Rol o función (opcional)</label>
@@ -249,7 +322,7 @@ export default function NuevaBrigadaPage() {
             </div>
           </section>
 
-          <button onClick={handleSubmit} disabled={submitting || !canSubmit} className="bg-accent text-fg font-bold rounded-lg py-3 hover:bg-hover hover:text-base disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+          <button onClick={handleSubmit} disabled={submitting} className="bg-accent text-fg font-bold rounded-lg py-3 hover:bg-hover hover:text-base disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
             {submitting ? "Guardando…" : "Guardar brigada"}
           </button>
         </div>

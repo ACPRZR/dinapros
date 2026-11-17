@@ -40,7 +40,7 @@ export default function IngresarPage() {
           href="/"
           className="font-bold text-fg text-sm hover:text-accent transition-colors"
         >
-          ← DINAPROS esta contigo
+          ← LADP te ayuda
         </Link>
       </header>
 

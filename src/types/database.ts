@@ -90,7 +90,7 @@ export const TIPOS_AFECTACION = [
   "Aislamiento vial",
   "Corte de servicios básicos",
   "Desborde de río/quebrada",
-  "Otro",
+  "Otros",
 ] as const;
 
 export const NECESIDADES_PRINCIPALES = [
@@ -101,7 +101,7 @@ export const NECESIDADES_PRINCIPALES = [
   "Maquinaria de limpieza",
   "Evacuación y rescate",
   "Kits de higiene",
-  "Otro",
+  "Otros",
 ] as const;
 
 // Necesidades que activan el aviso de contacto de brigada
@@ -117,5 +117,7 @@ export const CATEGORIAS_AYUDA = [
   "Salud y medicamentos",
   "Herramientas y kits de limpieza",
   "Higiene personal",
-  "Otro",
+  "Contención emocional",
+  "Limpieza / Remoción de escombros",
+  "Otros",
 ] as const;

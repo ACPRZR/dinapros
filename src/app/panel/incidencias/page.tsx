@@ -28,7 +28,7 @@ const AFECTACION_ICONS: Record<string, LucideIcon> = {
   "Aislamiento vial": Route,
   "Corte de servicios básicos": Zap,
   "Desborde de río/quebrada": Droplets,
-  "Otro": MoreHorizontal,
+  "Otros": MoreHorizontal,
 };
 
 const NECESIDAD_ICONS: Record<string, LucideIcon> = {
@@ -39,7 +39,7 @@ const NECESIDAD_ICONS: Record<string, LucideIcon> = {
   "Maquinaria de limpieza": Wrench,
   "Evacuación y rescate": LifeBuoy,
   "Kits de higiene": ShowerHead,
-  "Otro": MoreHorizontal,
+  "Otros": MoreHorizontal,
 };
 
 type FormData = {
@@ -47,8 +47,10 @@ type FormData = {
   provincia: string;
   distrito: string;
   tipo_afectacion: string;
+  tipo_afectacion_otro: string;
   cantidad_hogares: number;
   necesidad_principal: string;
+  necesidad_principal_otro: string;
   fecha_evento: string;
   observaciones: string;
 };
@@ -58,8 +60,10 @@ const EMPTY_FORM: FormData = {
   provincia: "",
   distrito: "",
   tipo_afectacion: "",
+  tipo_afectacion_otro: "",
   cantidad_hogares: 0,
   necesidad_principal: "",
+  necesidad_principal_otro: "",
   fecha_evento: "",
   observaciones: "",
 };
@@ -98,8 +102,8 @@ export default function IncidenciasWizard() {
   function nextDisabled() {
     switch (step) {
       case 1: return !data.distrito;
-      case 2: return !data.tipo_afectacion;
-      case 3: return data.cantidad_hogares < 0 || !data.necesidad_principal;
+      case 2: return !data.tipo_afectacion || (data.tipo_afectacion === "Otros" && !data.tipo_afectacion_otro.trim());
+      case 3: return data.cantidad_hogares < 0 || !data.necesidad_principal || (data.necesidad_principal === "Otros" && !data.necesidad_principal_otro.trim());
       case 4: return !data.fecha_evento;
       default: return false;
     }
@@ -129,15 +133,24 @@ export default function IncidenciasWizard() {
     setSubmitting(true);
     setError(null);
     const supabase = createClient();
+    const afectacionFinal =
+      data.tipo_afectacion === "Otros"
+        ? `Otros: ${data.tipo_afectacion_otro.trim()}`
+        : data.tipo_afectacion;
+    const necesidadFinal =
+      data.necesidad_principal === "Otros"
+        ? `Otros: ${data.necesidad_principal_otro.trim()}`
+        : data.necesidad_principal;
+
     const { data: result, error } = await supabase
       .from("incidencias")
       .insert({
         departamento: data.departamento || null,
         provincia: data.provincia || null,
         distrito: data.distrito || null,
-        tipo_afectacion: data.tipo_afectacion,
+        tipo_afectacion: afectacionFinal,
         cantidad_hogares: data.cantidad_hogares,
-        necesidad_principal: data.necesidad_principal,
+        necesidad_principal: necesidadFinal,
         fecha_evento: data.fecha_evento,
         observaciones: data.observaciones || null,
       })
@@ -145,7 +158,8 @@ export default function IncidenciasWizard() {
       .single();
 
     if (error) {
-      setError("Error al guardar. Verifica tu conexión e intenta de nuevo.");
+      console.error("Error al guardar incidencia:", error);
+      setError(`Error al guardar: ${error.message || "Verifica tu conexión e intenta de nuevo."}`);
       setSubmitting(false);
       return;
     }
@@ -228,10 +242,35 @@ export default function IncidenciasWizard() {
                 {TIPOS_AFECTACION.map((tipo) => {
                   const Icon = AFECTACION_ICONS[tipo];
                   return (
-                    <OptionCard key={tipo} icon={Icon ? <Icon className="w-8 h-8" /> : null} label={tipo} selected={data.tipo_afectacion === tipo} onClick={() => setData((d) => ({ ...d, tipo_afectacion: tipo }))} />
+                    <OptionCard
+                      key={tipo}
+                      icon={Icon ? <Icon className="w-8 h-8" /> : null}
+                      label={tipo}
+                      selected={data.tipo_afectacion === tipo}
+                      onClick={() =>
+                        setData((d) => ({
+                          ...d,
+                          tipo_afectacion: tipo,
+                          tipo_afectacion_otro: tipo === "Otros" ? d.tipo_afectacion_otro : "",
+                        }))
+                      }
+                    />
                   );
                 })}
               </div>
+              {data.tipo_afectacion === "Otros" && (
+                <div className="flex flex-col gap-1 mt-2">
+                  <label className="text-sm font-medium text-fg">Especifique el detalle *</label>
+                  <input
+                    type="text"
+                    required
+                    value={data.tipo_afectacion_otro}
+                    onChange={(e) => setData((d) => ({ ...d, tipo_afectacion_otro: e.target.value }))}
+                    placeholder="Describa cuál es la otra opción…"
+                    className="bg-base border border-edge rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent"
+                  />
+                </div>
+              )}
             </div>
           )}
 
@@ -249,10 +288,35 @@ export default function IncidenciasWizard() {
                   {NECESIDADES_PRINCIPALES.map((nec) => {
                     const Icon = NECESIDAD_ICONS[nec];
                     return (
-                      <OptionCard key={nec} icon={Icon ? <Icon className="w-8 h-8" /> : null} label={nec} selected={data.necesidad_principal === nec} onClick={() => setData((d) => ({ ...d, necesidad_principal: nec }))} />
+                      <OptionCard
+                        key={nec}
+                        icon={Icon ? <Icon className="w-8 h-8" /> : null}
+                        label={nec}
+                        selected={data.necesidad_principal === nec}
+                        onClick={() =>
+                          setData((d) => ({
+                            ...d,
+                            necesidad_principal: nec,
+                            necesidad_principal_otro: nec === "Otros" ? d.necesidad_principal_otro : "",
+                          }))
+                        }
+                      />
                     );
                   })}
                 </div>
+                {data.necesidad_principal === "Otros" && (
+                  <div className="flex flex-col gap-1 mt-2">
+                    <label className="text-sm font-medium text-fg">Especifique el detalle *</label>
+                    <input
+                      type="text"
+                      required
+                      value={data.necesidad_principal_otro}
+                      onChange={(e) => setData((d) => ({ ...d, necesidad_principal_otro: e.target.value }))}
+                      placeholder="Describa cuál es la otra opción…"
+                      className="bg-base border border-edge rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent"
+                    />
+                  </div>
+                )}
               </div>
               {brigadaContact && (
                 <div className="bg-accent/10 border border-accent/30 rounded-xl p-4">
@@ -267,10 +331,10 @@ export default function IncidenciasWizard() {
             </div>
           )}
 
-          {/* STEP 4 — Fecha y Observaciones */}
+          {/* STEP 4 — Fecha y Alertas / Avisos */}
           {step === 4 && (
             <div className="flex flex-col gap-5">
-              <h3 className="text-lg font-bold text-fg">Fecha del suceso y observaciones</h3>
+              <h3 className="text-lg font-bold text-fg">Fecha del suceso y alertas / avisos</h3>
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-fg">¿Cuándo sucedió?</label>
                 <div className="flex gap-2 mb-2">
@@ -280,8 +344,8 @@ export default function IncidenciasWizard() {
                 <input type="date" max={today} value={data.fecha_evento} onChange={(e) => setData((d) => ({ ...d, fecha_evento: e.target.value }))} className="bg-base border border-edge rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent w-full max-w-xs" />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-fg">Observaciones (opcional)</label>
-                <textarea maxLength={500} rows={4} value={data.observaciones} onChange={(e) => setData((d) => ({ ...d, observaciones: e.target.value }))} placeholder="Detalles de ubicación o referencia…" className="bg-base border border-edge rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent resize-none" />
+                <label className="text-sm font-medium text-fg">Alertas / Avisos (opcional)</label>
+                <textarea maxLength={500} rows={4} value={data.observaciones} onChange={(e) => setData((d) => ({ ...d, observaciones: e.target.value }))} placeholder="Detalles de ubicación, alerta o aviso…" className="bg-base border border-edge rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent resize-none" />
                 <span className="text-xs text-dim text-right">{data.observaciones.length}/500</span>
               </div>
             </div>
@@ -294,9 +358,26 @@ export default function IncidenciasWizard() {
               {error && <p className="text-sm text-red-500 bg-red-500/10 rounded-lg px-3 py-2">{error}</p>}
               <div className="flex flex-col gap-3">
                 <SummaryBlock title="Ubicación" onEdit={() => setStep(1)} value={data.distrito} subtitle={`${data.departamento} · ${data.provincia}`} />
-                <SummaryBlock title="Tipo de afectación" onEdit={() => setStep(2)} value={data.tipo_afectacion} />
-                <SummaryBlock title="Hogares afectados" onEdit={() => setStep(3)} value={`${data.cantidad_hogares} hogares`} subtitle={`Necesidad: ${data.necesidad_principal}`} />
-                <SummaryBlock title="Fecha del suceso" onEdit={() => setStep(4)} value={data.fecha_evento} subtitle={data.observaciones ? `Obs: ${data.observaciones}` : "Sin observaciones"} />
+                <SummaryBlock
+                  title="Tipo de afectación"
+                  onEdit={() => setStep(2)}
+                  value={
+                    data.tipo_afectacion === "Otros"
+                      ? `Otros: ${data.tipo_afectacion_otro.trim()}`
+                      : data.tipo_afectacion
+                  }
+                />
+                <SummaryBlock
+                  title="Hogares afectados"
+                  onEdit={() => setStep(3)}
+                  value={`${data.cantidad_hogares} hogares`}
+                  subtitle={`Necesidad: ${
+                    data.necesidad_principal === "Otros"
+                      ? `Otros: ${data.necesidad_principal_otro.trim()}`
+                      : data.necesidad_principal
+                  }`}
+                />
+                <SummaryBlock title="Fecha del suceso" onEdit={() => setStep(4)} value={data.fecha_evento} subtitle={data.observaciones ? `Alertas / Avisos: ${data.observaciones}` : "Sin alertas / avisos"} />
               </div>
               <button onClick={handleSubmit} disabled={submitting} className="mt-2 bg-accent text-fg font-bold rounded-lg py-3 hover:bg-hover hover:text-base transition-colors disabled:opacity-50">
                 {submitting ? "Guardando…" : "Confirmar y guardar"}

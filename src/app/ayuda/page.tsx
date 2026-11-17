@@ -27,7 +27,7 @@ export default function AyudaPage() {
           href="/"
           className="font-bold text-fg text-sm hover:opacity-70 transition-opacity"
         >
-          ← DINAPROS esta contigo
+          ← LADP te ayuda
         </Link>
       </header>
 
@@ -36,7 +36,7 @@ export default function AyudaPage() {
           Ayuda del sitio
         </h1>
         <p className="text-sm text-fg/70 mb-8">
-          Instrucciones rápidas para usar la plataforma DINAPROS.
+          Instrucciones rápidas para usar la plataforma LADP te ayuda.
         </p>
 
         <div className="flex flex-col gap-4">
